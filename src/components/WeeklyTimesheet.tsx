@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar, Download, Filter, ChevronDown, Edit, Save, X } from 'lucide-react';
 import { TimeLog } from './TimeTracker';
-import { format, startOfWeek, endOfWeek, addDays, subDays, isSameDay, eachDayOfInterval, isToday } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addDays, subDays, isSameDay, eachDayOfInterval, isToday, parseISO } from 'date-fns';
 import { generateProjectColor, isColorCodedProjectsEnabled } from '@/lib/projectColors';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -72,7 +72,7 @@ const WeeklyTimesheet: React.FC<WeeklyTimesheetProps> = ({ timeLogs, onUpdateTim
 
   const daysInRange = useMemo(() => {
     const allDays = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
-    return allDays.filter(day => day.getDay() !== 0 && day.getDay() !== 6); // Filter out weekends
+    return allDays.filter(day => day.getDay() !== 0 && day.getDay() !== 6);
   }, [dateRange]);
 
   const getDayTotal = (date: Date) => {
@@ -223,8 +223,7 @@ const WeeklyTimesheet: React.FC<WeeklyTimesheetProps> = ({ timeLogs, onUpdateTim
   };
 
   const getCurrentDayStyle = (date: Date) => {
-    const isToday = isSameDay(date, new Date());
-    if (!isToday || !progressBarEnabled) return {};
+    if (!isToday(date) || !progressBarEnabled) return {};
     
     const hexToRgba = (hex: string, alpha: number) => {
       const r = parseInt(hex.slice(1, 3), 16);
@@ -330,85 +329,74 @@ const WeeklyTimesheet: React.FC<WeeklyTimesheetProps> = ({ timeLogs, onUpdateTim
     setIsModalOpen(true);
   };
 
+  const weekTotal = daysInRange.reduce((total, day) => total + getDayTotal(day), 0);
+
   return (
     <div className="space-y-6 animate-fade-in font-sans" style={{ fontFamily: "'Noto Sans', sans-serif" }}>
-      {/* Week Days Card */}
+      {/* Week Summary Card */}
       <Card className="bg-white border border-[#B0B0B0] shadow-md">
-        <CardHeader className="py-4 px-6 bg-[#F0F0F0] border-b border-[#B0B0B0]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle className="text-xl font-bold text-black tracking-tight">Week Days</CardTitle>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex items-center gap-4">
-                <Button onClick={goToPreviousWeek} variant="outline" size="sm" className="border border-[#B0B0B0] text-black">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-[#4D4D4D] font-medium">From:</Label>
-                    <input
-                      type="date"
-                      value={format(dateRange.start, 'yyyy-MM-dd')}
-                      onChange={(e) => handleDateRangeChange('start', new Date(e.target.value))}
-                      className="border border-[#B0B0B0] rounded px-2 py-1"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Label className="text-[#4D4D4D] font-medium">To:</Label>
-                    <input
-                      type="date"
-                      value={format(dateRange.end, 'yyyy-MM-dd')}
-                      onChange={(e) => handleDateRangeChange('end', new Date(e.target.value))}
-                      className="border border-[#B0B0B0] rounded px-2 py-1"
-                    />
-                  </div>
-                </div>
-                
-                <Button onClick={goToNextWeek} variant="outline" size="sm" className="border border-[#B0B0B0] text-black">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <Button onClick={goToCurrentWeek} className="bg-[#4D4D4D] text-white hover:bg-[#7D7D7D]">
-                  This Week
-                </Button>
-              </div>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-[#4D4D4D]">
+                {format(dateRange.start, 'MMM d, yyyy')} - {format(dateRange.end, 'MMM d, yyyy')}
+              </h2>
+              <p className="text-[#7D7D7D] text-sm">
+                {formatHours(weekTotal)} hours this week
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={goToPreviousWeek}
+                variant="outline" 
+                className="border border-[#B0B0B0] text-black"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button 
+                onClick={goToCurrentWeek}
+                className="bg-[#4D4D4D] text-white hover:bg-[#7D7D7D]"
+              >
+                This Week
+              </Button>
+              <Button 
+                onClick={goToNextWeek}
+                variant="outline" 
+                className="border border-[#B0B0B0] text-black"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-6">
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {daysInRange.map(day => {
               const dayTotal = getDayTotal(day);
-              const isCurrentDay = isToday(day);
               
               return (
                 <button
                   key={day.toISOString()}
                   className={`
                     aspect-square flex flex-col items-center justify-center 
-                    p-4 rounded-2xl border border-[#E0E0E0]
+                    p-2 rounded-2xl border border-[#E0E0E0]
                     transition-all duration-300
                     bg-gradient-to-b from-white to-[#F8F8F8]
-                    ${isCurrentDay ? 'ring-2 ring-opacity-50' : ''}
                     hover:shadow-lg hover:border-[#B0B0B0] hover:scale-105
                     focus:outline-none
                   `}
                   style={getDayBoxGlowStyle(day)}
                   onClick={openTimeBreakdown}
                 >
-                  <div className="text-sm font-semibold text-[#4D4D4D] mb-1">
+                  <div className="text-base font-semibold text-[#4D4D4D] mb-1">
                     {format(day, 'EEE')}
                   </div>
-                  <div className="text-2xl font-bold text-[#4D4D4D] mb-2">
+                  <div className="text-4xl font-bold text-[#4D4D4D] mb-1">
                     {format(day, 'd')}
                   </div>
-                  <div className="text-xs font-medium text-[#7D7D7D]">
+                  <div className="text-xs font-normal text-[#7D7D7D]">
                     {format(day, 'MMM yyyy')}
                   </div>
-                  <div className="mt-2 text-sm font-medium bg-[#4D4D4D] text-white px-2 py-1 rounded-full">
+                  <div className="mt-1 text-xs font-medium bg-[#4D4D4D] text-white px-1.5 py-0.5 rounded-full">
                     {formatHours(dayTotal)} hours
                   </div>
                 </button>

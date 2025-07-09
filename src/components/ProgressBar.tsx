@@ -58,15 +58,65 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
   if (!enabled) {
     return (
-      <div className="mb-6 p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/60 shadow-2xl hover:shadow-2xl transition-all duration-500 animate-fade-in backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">Total Time Today</div>
-            <div className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">{hours} hrs</div>
+      <div className="mb-6 p-4 bg-white dark:bg-gray-950 rounded-[28px] border border-gray-200/30 dark:border-gray-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_48px_rgba(0,0,0,0.5)] transition-all duration-700 ease-out backdrop-blur-xl h-20">
+        <div className="flex items-center justify-between h-full">
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 tracking-wide">Total Time Today</div>
+            <div className="flex items-baseline space-x-2">
+              <div className="text-3xl font-thin text-gray-900 dark:text-gray-50 tracking-tight">{hours}</div>
+              <div className="text-sm font-medium text-gray-400 dark:text-gray-500">hours</div>
+            </div>
           </div>
-          <div className="text-right">
-            <div className="w-20 h-20 rounded-full bg-blue-50/50 dark:bg-blue-900/30 flex items-center justify-center border-2 border-blue-100/30 dark:border-blue-700/30">
-              <div className="text-2xl font-bold text-blue-500 dark:text-blue-400">{Math.round(parseFloat(hours))}</div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Progress bar */}
+            <div className="relative w-32">
+              {/* Track */}
+              <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                {/* Fill */}
+                <div 
+                  className="h-full bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 rounded-full transition-all duration-1000 ease-out relative"
+                  style={{ width: `${progressPercentage}%` }}
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Circular progress indicator */}
+            <div className="relative w-12 h-12">
+              <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 100 100">
+                {/* Background circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="none"
+                  className="text-gray-100 dark:text-gray-800"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeDasharray={`${2 * Math.PI * 45}`}
+                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - progressPercentage / 100)}`}
+                  className="text-gray-900 dark:text-gray-100 transition-all duration-1000 ease-out"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {/* Center percentage */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                  {Math.round(progressPercentage)}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -249,6 +299,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         @keyframes waveBounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-3px); }
+        }
+        
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
       `}</style>
     </div>
