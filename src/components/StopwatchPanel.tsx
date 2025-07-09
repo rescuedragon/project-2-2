@@ -15,6 +15,7 @@ interface StopwatchPanelProps {
   onPauseProject: (queuedProject: QueuedProject) => void;
   resumedProject?: QueuedProject;
   onResumedProjectHandled: () => void;
+  isColorCodedEnabled?: boolean; // Add this prop to control color coding
 }
 
 const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
@@ -23,7 +24,8 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
   onLogTime,
   onPauseProject,
   resumedProject,
-  onResumedProjectHandled
+  onResumedProjectHandled,
+  isColorCodedEnabled = false // Default to false
 }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -77,26 +79,29 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     localStorage.setItem('stopwatch-state', JSON.stringify(state));
   }, [isRunning, elapsedTime, startTime]);
 
-  // Update project color when project changes
+  // Update project color when project changes or color coding is toggled
   useEffect(() => {
-    if (selectedProject && selectedSubproject) {
+    if (selectedProject && selectedSubproject && isColorCodedEnabled) {
       const color = generateProjectColor(selectedProject.name);
       setProjectColor(color);
-      
-      // Animate project info appearance
-      if (projectInfoRef.current) {
-        projectInfoRef.current.style.opacity = '0';
-        projectInfoRef.current.style.transform = 'translateY(-20px) scale(0.9)';
-        setTimeout(() => {
-          if (projectInfoRef.current) {
-            projectInfoRef.current.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            projectInfoRef.current.style.opacity = '1';
-            projectInfoRef.current.style.transform = 'translateY(0) scale(1)';
-          }
-        }, 10);
-      }
+    } else {
+      // Use neutral color when color coding is disabled
+      setProjectColor('rgba(240, 240, 240, 0.1)');
     }
-  }, [selectedProject, selectedSubproject]);
+    
+    // Animate project info appearance
+    if (projectInfoRef.current) {
+      projectInfoRef.current.style.opacity = '0';
+      projectInfoRef.current.style.transform = 'translateY(-20px) scale(0.9)';
+      setTimeout(() => {
+        if (projectInfoRef.current) {
+          projectInfoRef.current.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+          projectInfoRef.current.style.opacity = '1';
+          projectInfoRef.current.style.transform = 'translateY(0) scale(1)';
+        }
+      }, 10);
+    }
+  }, [selectedProject, selectedSubproject, isColorCodedEnabled]);
 
   // Update blue tint opacity based on elapsed time
   useEffect(() => {
@@ -437,32 +442,39 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Project Info Display - No "Stopwatch" text */}
-      <div 
-        ref={projectInfoRef}
-        className={`text-center space-y-2 px-8 py-6 rounded-2xl border shadow-xl backdrop-blur-lg transition-all duration-300 mx-6 mt-6 mb-8 min-w-[320px] max-w-[480px] truncate ${
-          showProjectInfo ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{
-          backgroundColor: showProjectInfo ? projectColor : 'transparent',
-          borderColor: showProjectInfo ? projectColor.replace('0.7', '0.9') : 'transparent',
-          boxShadow: showProjectInfo ? 
-            `0 10px 30px ${projectColor.replace('0.7', '0.3')}, 0 4px 10px rgba(0,0,0,0.1)` : 'none',
-          transition: 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
-          transform: showProjectInfo ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.9)',
-          opacity: showProjectInfo ? 1 : 0,
-        }}
-      >
-        {showProjectInfo && (
-          <>
-            <div className="text-xl font-medium text-gray-800 tracking-tight truncate">
-              {selectedProject.name}
-            </div>
-            <div className="text-sm text-gray-700 font-light truncate">
-              {selectedSubproject.name}
-            </div>
-          </>
-        )}
+      {/* Project Info Display - Fixed height container to prevent layout shift */}
+      <div className="mx-6 mt-6 mb-8 min-h-[104px] flex flex-col justify-center">
+        <div 
+          className={`text-center px-8 py-6 rounded-2xl border shadow-xl backdrop-blur-lg transition-all duration-300 min-w-[320px] max-w-[480px] min-h-[80px] flex flex-col justify-center ${
+            showProjectInfo ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{
+            backgroundColor: showProjectInfo ? (isColorCodedEnabled ? projectColor : 'rgba(248, 250, 252, 0.9)') : 'transparent',
+            borderColor: showProjectInfo ? (isColorCodedEnabled ? projectColor.replace('0.7', '0.9') : 'rgba(226, 232, 240, 0.5)') : 'transparent',
+            boxShadow: showProjectInfo ? 
+              (isColorCodedEnabled ? 
+                `0 10px 30px ${projectColor.replace('0.7', '0.3')}, 0 4px 10px rgba(0,0,0,0.1)` : 
+                '0 10px 30px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05)'
+              ) : 
+              'none'
+          }}
+        >
+          <div 
+            ref={projectInfoRef}
+            className="space-y-2 truncate"
+          >
+            {showProjectInfo && (
+              <>
+                <div className="text-xl font-medium text-gray-800 tracking-tight truncate">
+                  {selectedProject.name}
+                </div>
+                <div className="text-sm text-gray-700 font-light truncate">
+                  {selectedSubproject.name}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
       
       {/* Timer Section */}

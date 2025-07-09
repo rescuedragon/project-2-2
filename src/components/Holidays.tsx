@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ interface PlannedLeave {
   endDate: string;
 }
 
-// Indian public holidays for 2025
 const defaultHolidays: Holiday[] = [
   { id: '1', name: 'New Year\'s Day', date: '2025-01-01' },
   { id: '2', name: 'Republic Day', date: '2025-01-26' },
@@ -60,7 +59,6 @@ const Holidays: React.FC = () => {
       setPlannedLeaves(JSON.parse(savedLeaves));
     }
     
-    // Load progress bar settings
     const savedEnabled = localStorage.getItem('progressbar-enabled');
     const savedColor = localStorage.getItem('progressbar-color');
     
@@ -181,8 +179,7 @@ const Holidays: React.FC = () => {
     border: '1px solid #e2e8f0'
   };
 
-  // Calendar UI Component (Enhanced with PremiumCalendar UI)
-  const CalendarUI = () => {
+  const CalendarUI = ({ month }: { month: Date }) => {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
@@ -196,35 +193,40 @@ const Holidays: React.FC = () => {
 
     const getFirstDayOfMonth = (date: Date) => {
       const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-      return firstDay === 0 ? 6 : firstDay - 1; // Convert Sunday (0) to be last (6)
+      return firstDay === 0 ? 6 : firstDay - 1;
     };
 
     const handleDateClick = (day: number) => {
-      const clickedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      const clickedDate = new Date(month.getFullYear(), month.getMonth(), day);
       setSelectedDate(clickedDate);
     };
 
     const renderCalendarDays = () => {
-      const daysInMonth = getDaysInMonth(currentMonth);
-      const firstDay = getFirstDayOfMonth(currentMonth);
+      const daysInMonth = getDaysInMonth(month);
+      const firstDay = getFirstDayOfMonth(month);
       const days = [];
+      let gridIndex = 0;
 
-      // Empty cells for days before the first day of the month
       for (let i = 0; i < firstDay; i++) {
+        const isWeekendColumn = (gridIndex % 7 === 5) || (gridIndex % 7 === 6);
         days.push(
-          <div key={`empty-${i}`} className="aspect-square"></div>
+          <div 
+            key={`empty-${i}`} 
+            className={`aspect-square ${isWeekendColumn ? 'bg-gray-50' : ''}`}
+          ></div>
         );
+        gridIndex++;
       }
 
-      // Days of the month
       for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+        const date = new Date(month.getFullYear(), month.getMonth(), day);
         const dayOfWeek = date.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         const isToday = date.toDateString() === new Date().toDateString();
         const isHoliday = holidayDates.some(d => d.toDateString() === date.toDateString());
         const isLeave = showPlannedLeaves && leaveDates.some(d => d.toDateString() === date.toDateString());
         const isSelected = selectedDate && selectedDate.toDateString() === date.toDateString();
+        const isWeekendColumn = (gridIndex % 7 === 5) || (gridIndex % 7 === 6);
 
         let className = `
           aspect-square flex items-center justify-center cursor-pointer
@@ -233,19 +235,18 @@ const Holidays: React.FC = () => {
           hover:scale-105 hover:shadow-lg hover:border-black/40
           active:scale-95
           ${isWeekend ? 'text-gray-500' : 'text-black'}
-          font-medium text-sm
+          font-medium
+          ${isWeekendColumn ? 'bg-gray-50' : 'bg-white'}
         `;
 
         if (isHoliday) {
           className += ' bg-red-500 hover:bg-red-600 text-white border-red-600 hover:border-red-700';
         } else if (isLeave) {
           className += ' bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 hover:border-emerald-700';
-        } else if (isToday) {
-          className += ' bg-blue-600 text-white border-blue-700 hover:border-blue-800';
         } else if (isSelected) {
           className += ' bg-gray-200 border-black hover:bg-gray-300';
-        } else {
-          className += ' bg-white';
+        } else if (isToday) {
+          className += ' bg-black text-white border-black/50';
         }
 
         days.push(
@@ -254,12 +255,14 @@ const Holidays: React.FC = () => {
             onClick={() => handleDateClick(day)}
             className={className}
             style={{
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif'
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+              fontSize: '1.8rem'
             }}
           >
             {day}
           </div>
         );
+        gridIndex++;
       }
 
       return days;
@@ -267,153 +270,115 @@ const Holidays: React.FC = () => {
 
     return (
       <div className="w-full">
-        <div 
-          className="bg-white rounded-2xl shadow-2xl border border-black/10 overflow-hidden"
-          style={{
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          }}
-        >
-          {/* Header */}
-          <div className="px-8 py-6 border-b border-black/10">
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={prevMonth}
-                className={`p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 ${
-                  progressBarEnabled ? 'text-white' : 'text-black'
-                }`}
-              >
-                <ChevronLeft size={20} />
-              </button>
-              
-              <h1 
-                className="text-2xl font-bold tracking-tight"
-                style={{
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
-                  letterSpacing: '-0.025em',
-                  color: progressBarEnabled ? 'white' : 'black'
-                }}
-              >
-                {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-              </h1>
-              
-              <button
-                onClick={nextMonth}
-                className={`p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 ${
-                  progressBarEnabled ? 'text-white' : 'text-black'
-                }`}
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-1">
-              {daysOfWeek.map((day, index) => (
-                <div
-                  key={day}
-                  className={`
-                    text-center py-3 font-bold text-sm
-                    ${index >= 5 ? 'text-gray-500' : progressBarEnabled ? 'text-white/80' : 'text-black'}
-                  `}
-                  style={{
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif'
-                  }}
-                >
-                  {day}
+        <div className="w-[50%] mx-auto">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl border border-black/10 overflow-hidden"
+            style={{
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div className="bg-gray-900 text-white rounded-t-2xl">
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={prevMonth}
+                    className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200 text-white"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  
+                  <h1 
+                    className="text-xl font-bold tracking-tight text-white"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+                      letterSpacing: '-0.025em',
+                    }}
+                  >
+                    {months[month.getMonth()]} {month.getFullYear()}
+                  </h1>
+                  
+                  <button
+                    onClick={nextMonth}
+                    className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200 text-white"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* Calendar Grid */}
-          <div className="p-6">
-            <div className="grid grid-cols-7 gap-2">
-              {renderCalendarDays()}
+              <div className="px-2 pb-2">
+                <div className="grid grid-cols-7 gap-1 bg-gray-900 p-2 rounded-lg">
+                  {daysOfWeek.map((day, index) => (
+                    <div
+                      key={day}
+                      className="text-center py-2 font-bold text-white"
+                      style={{
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+                        fontSize: '1.0rem'
+                      }}
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4">
+              <div className="grid grid-cols-7 gap-1">
+                {renderCalendarDays()}
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Selected Date Display */}
-        {selectedDate && (
-          <div className="mt-6 text-center">
-            <p 
-              className="font-medium"
-              style={{
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
-                color: progressBarEnabled ? 'white' : 'black'
-              }}
-            >
-              Selected: {selectedDate.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
-          </div>
-        )}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-br from-gray-50 to-white" style={{ fontFamily: 'Noto Sans, sans-serif' }}>
-      <Card className="border border-gray-300 shadow-2xl overflow-hidden relative bg-white">
-        {/* Header */}
-        <CardHeader 
-          className="p-8 relative overflow-hidden border-b border-gray-200"
-          style={headerStyle}
-        >
-          <CardTitle className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl ${progressBarEnabled ? 'bg-white/20' : 'bg-gray-100'}`}>
-                <CalendarIcon className={`h-8 w-8 ${progressBarEnabled ? 'text-white' : 'text-gray-700'}`} />
-              </div>
-              <div>
-                <h1 className={`text-3xl font-light tracking-tight ${progressBarEnabled ? 'text-white' : 'text-gray-900'}`}>
+    <div className="min-h-screen p-1 bg-gradient-to-br from-gray-50 to-white">
+      <Card className="border border-gray-300 shadow-xl overflow-hidden relative bg-white">
+        <CardContent className="p-1">
+          <div className="flex flex-col gap-4 items-center pt-4">
+            <div className="w-[49%] mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-2xl bg-gray-100">
+                  <CalendarIcon className="h-6 w-6 text-gray-700" />
+                </div>
+                <h1 className="text-2xl font-light tracking-tight text-gray-900">
                   Calendar
                 </h1>
               </div>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex flex-col gap-4">
-                {/* Holidays Button */}
+              
+              <div className="flex gap-4">
                 <button
                   onClick={handleHolidaysDialogOpen}
-                  className="h-10 px-5 rounded-xl font-medium transition-all duration-300 flex items-center justify-center
+                  className="h-9 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center
                     active:scale-[0.98] active:shadow-inner
                     bg-black text-white border border-gray-800 hover:bg-gray-900"
                 >
-                  <span className="font-medium">Holidays</span>
+                  <span className="font-medium text-sm">Holidays</span>
                 </button>
                 
-                {/* Planned Leaves Button */}
                 <button
                   onClick={togglePlannedLeaves}
-                  className="h-10 px-5 rounded-xl font-medium transition-all duration-300 flex items-center justify-center
+                  className="h-9 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center
                     active:scale-[0.98] active:shadow-inner
                     bg-black text-white border border-gray-800 hover:bg-gray-900"
                 >
-                  <span className="font-medium">Planned Leaves</span>
+                  <span className="font-medium text-sm">Planned Leaves</span>
                 </button>
               </div>
             </div>
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="p-8">
-          <div className="flex flex-col gap-8 items-center">
-            {/* Calendar */}
-            <CalendarUI />
+            
+            <CalendarUI month={currentMonth} />
           </div>
           
-          {/* Public Holidays Container (only shown when there are holidays this month) */}
           {hasHolidaysThisMonth() && (
             <div className="flex justify-center">
-              <div className="mt-8 bg-white rounded-2xl p-6 shadow-xl border border-gray-300 w-full max-w-3xl">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Public Holidays</h3>
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+              <div className="mt-4 bg-white rounded-xl p-4 shadow-lg border border-gray-300 w-[57%] mx-auto">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Public Holidays</h3>
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                   {holidays
                     .filter(holiday => {
                       const holidayDate = new Date(holiday.date);
@@ -423,11 +388,11 @@ const Holidays: React.FC = () => {
                     .map(holiday => (
                       <div 
                         key={holiday.id} 
-                        className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between"
+                        className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-center justify-between"
                       >
                         <div>
-                          <div className="font-semibold text-gray-900">{holiday.name}</div>
-                          <div className="text-sm text-gray-600 mt-1">
+                          <div className="font-semibold text-gray-900 text-sm">{holiday.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">
                             {new Date(holiday.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                           </div>
                         </div>
@@ -435,9 +400,9 @@ const Holidays: React.FC = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleRemoveHoliday(holiday.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-100"
+                          className="h-7 w-7 p-0 text-red-600 hover:text-red-800 hover:bg-red-100"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     ))}
@@ -446,67 +411,66 @@ const Holidays: React.FC = () => {
             </div>
           )}
           
-          {/* Planned Leaves Container (only shown when toggle is ON) */}
           {showPlannedLeaves && (
             <div className="flex justify-center">
-              <div className="mt-8 bg-white rounded-2xl p-6 shadow-xl border border-gray-300 w-full max-w-3xl">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Planned Leaves</h3>
+              <div className="mt-4 bg-white rounded-xl p-4 shadow-lg border border-gray-300 w-[57%] mx-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Planned Leaves</h3>
                   <Dialog open={isAddingLeave} onOpenChange={setIsAddingLeave}>
                     <DialogTrigger asChild>
-                      <Button className="h-12 bg-green-800 hover:bg-green-900 text-white py-2 px-4 rounded-xl shadow-lg font-medium">
-                        <Plus className="h-5 w-5 mr-2" />
+                      <Button className="h-9 bg-green-800 hover:bg-green-900 text-white py-1 px-3 rounded-xl shadow font-medium text-xs">
+                        <Plus className="h-3 w-3 mr-1" />
                         Add Planned Leave
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px] rounded-2xl border border-gray-300 shadow-2xl">
                       <DialogHeader>
-                        <DialogTitle className="text-xl font-semibold">Add Planned Leave</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold">Add Planned Leave</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-6 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="leave-name" className="text-sm font-medium">Leave Name</Label>
+                      <div className="space-y-4 py-2">
+                        <div className="space-y-1">
+                          <Label htmlFor="leave-name" className="text-xs font-medium">Leave Name</Label>
                           <Input
                             id="leave-name"
                             value={newLeave.name}
                             onChange={(e) => setNewLeave({...newLeave, name: e.target.value})}
                             placeholder="e.g., Annual Leave"
-                            className="rounded-xl border-gray-300 h-12"
+                            className="rounded-xl border-gray-300 h-10"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="employee" className="text-sm font-medium">Employee</Label>
+                        <div className="space-y-1">
+                          <Label htmlFor="employee" className="text-xs font-medium">Employee</Label>
                           <Input
                             id="employee"
                             value={newLeave.employee}
                             onChange={(e) => setNewLeave({...newLeave, employee: e.target.value})}
                             placeholder="Employee name"
-                            className="rounded-xl border-gray-300 h-12"
+                            className="rounded-xl border-gray-300 h-10"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="startDate" className="text-sm font-medium">Start Date</Label>
+                        <div className="space-y-1">
+                          <Label htmlFor="startDate" className="text-xs font-medium">Start Date</Label>
                           <Input
                             id="startDate"
                             type="date"
                             value={newLeave.startDate}
                             onChange={(e) => setNewLeave({...newLeave, startDate: e.target.value})}
-                            className="rounded-xl border-gray-300 h-12"
+                            className="rounded-xl border-gray-300 h-10"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="endDate" className="text-sm font-medium">End Date</Label>
+                        <div className="space-y-1">
+                          <Label htmlFor="endDate" className="text-xs font-medium">End Date</Label>
                           <Input
                             id="endDate"
                             type="date"
                             value={newLeave.endDate}
                             onChange={(e) => setNewLeave({...newLeave, endDate: e.target.value})}
-                            className="rounded-xl border-gray-300 h-12"
+                            className="rounded-xl border-gray-300 h-10"
                           />
                         </div>
                         <Button 
                           onClick={handleAddPlannedLeave} 
-                          className="w-full h-12 bg-green-800 hover:bg-green-900 text-white py-3 rounded-xl"
+                          className="w-full h-10 bg-green-800 hover:bg-green-900 text-white py-2 rounded-xl"
                         >
                           Add Leave
                         </Button>
@@ -515,16 +479,16 @@ const Holidays: React.FC = () => {
                   </Dialog>
                 </div>
                 
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                   {plannedLeaves.length > 0 ? (
                     plannedLeaves.map(leave => (
                       <div 
                         key={leave.id} 
-                        className="p-4 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between"
+                        className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center justify-between"
                       >
                         <div>
-                          <div className="font-semibold text-gray-900">{leave.name}</div>
-                          <div className="text-sm text-gray-600 mt-1">
+                          <div className="font-semibold text-gray-900 text-sm">{leave.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">
                             {leave.employee} • {new Date(leave.startDate).toLocaleDateString()} to {new Date(leave.endDate).toLocaleDateString()}
                           </div>
                         </div>
@@ -532,16 +496,16 @@ const Holidays: React.FC = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleRemovePlannedLeave(leave.id)}
-                          className="h-8 w-8 p-0 text-green-800 hover:text-green-900 hover:bg-green-100"
+                          className="h-7 w-7 p-0 text-green-800 hover:text-green-900 hover:bg-green-100"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-4 text-gray-500 text-sm">
                       <p>No planned leaves added yet</p>
-                      <p className="text-sm mt-2">Click "Add Planned Leave" to create one</p>
+                      <p className="text-xs mt-1">Click "Add Planned Leave" to create one</p>
                     </div>
                   )}
                 </div>
@@ -551,11 +515,10 @@ const Holidays: React.FC = () => {
         </CardContent>
       </Card>
       
-      {/* Holidays Dialog */}
       <Dialog open={showHolidaysDialog} onOpenChange={setShowHolidaysDialog}>
-        <DialogContent className="max-w-4xl rounded-2xl border border-gray-300 shadow-2xl p-8">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="text-2xl font-semibold text-gray-900">
+        <DialogContent className="max-w-4xl rounded-2xl border border-gray-300 shadow-2xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900">
               {holidaysViewMonth 
                 ? `Holidays - ${holidaysViewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` 
                 : '2025 Holidays'}
@@ -563,32 +526,34 @@ const Holidays: React.FC = () => {
           </DialogHeader>
           
           {holidaysViewMonth ? (
-            <div className="space-y-8">
-              <div className="bg-white rounded-2xl border border-gray-300 shadow-lg p-6">
-                <CalendarUI />
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-gray-300 shadow-lg p-4">
+                <CalendarUI month={holidaysViewMonth} />
               </div>
               
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-300">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Holidays</h3>
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                  {getHolidaysForMonth(holidaysViewMonth).map(holiday => (
-                    <div 
-                      key={holiday.id} 
-                      className="p-4 rounded-xl bg-red-50 border border-red-200"
-                    >
-                      <div className="font-semibold text-gray-900">{holiday.name}</div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {new Date(holiday.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {getHolidaysForMonth(holidaysViewMonth).length > 0 && (
+                <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-300">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Holidays</h3>
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                    {getHolidaysForMonth(holidaysViewMonth).map(holiday => (
+                      <div 
+                        key={holiday.id} 
+                        className="p-3 rounded-lg bg-red-50 border border-red-200"
+                      >
+                        <div className="font-semibold text-gray-900 text-sm">{holiday.name}</div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {new Date(holiday.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               
               <div className="flex justify-center">
                 <DialogClose asChild>
                   <Button 
-                    className="h-12 bg-gray-900 hover:bg-gray-800 text-white py-2 px-6 rounded-xl shadow-lg font-medium"
+                    className="h-10 bg-gray-900 hover:bg-gray-800 text-white py-1 px-4 rounded-xl shadow font-medium"
                     onClick={() => setHolidaysViewMonth(null)}
                   >
                     Back to Year View
@@ -597,34 +562,34 @@ const Holidays: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-3 gap-6">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
                 {Array.from({ length: 12 }).map((_, i) => {
                   const month = new Date(2025, i, 1);
                   const monthHolidays = getHolidaysForMonth(month);
                   return (
                     <div 
                       key={i}
-                      className="bg-white rounded-2xl border border-gray-300 shadow-lg p-4 cursor-pointer transition-all hover:shadow-xl hover:border-gray-400"
+                      className="bg-white rounded-xl border border-gray-300 shadow p-3 cursor-pointer transition-all hover:shadow-md hover:border-gray-400"
                       onClick={() => handleMonthSelect(month)}
                     >
-                      <div className="font-semibold text-gray-900 mb-2">
+                      <div className="font-semibold text-gray-900 text-sm mb-1">
                         {month.toLocaleDateString('en-US', { month: 'long' })}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-xs text-gray-600">
                         {monthHolidays.length} {monthHolidays.length === 1 ? 'holiday' : 'holidays'}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-1">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         {monthHolidays.slice(0, 3).map(holiday => (
                           <div 
                             key={holiday.id} 
-                            className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full"
+                            className="text-[0.65rem] px-1.5 py-0.5 bg-red-100 text-red-800 rounded-full"
                           >
                             {new Date(holiday.date).getDate()}
                           </div>
                         ))}
                         {monthHolidays.length > 3 && (
-                          <div className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                          <div className="text-[0.65rem] px-1.5 py-0.5 bg-gray-100 text-gray-800 rounded-full">
                             +{monthHolidays.length - 3} more
                           </div>
                         )}
@@ -634,9 +599,9 @@ const Holidays: React.FC = () => {
                 })}
               </div>
               
-              <div className="flex justify-center mt-4">
+              <div className="flex justify-center mt-2">
                 <DialogClose asChild>
-                  <Button className="h-12 bg-gray-900 hover:bg-gray-800 text-white py-2 px-6 rounded-xl shadow-lg font-medium">
+                  <Button className="h-10 bg-gray-900 hover:bg-gray-800 text-white py-1 px-4 rounded-xl shadow font-medium">
                     Close
                   </Button>
                 </DialogClose>
