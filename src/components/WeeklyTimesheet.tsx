@@ -202,26 +202,26 @@ const WeeklyTimesheet: React.FC<WeeklyTimesheetProps> = ({ timeLogs, onUpdateTim
     });
   };
 
-const getProjectBackgroundStyle = (projectName: string, isSubproject: boolean = false) => {
-  if (!colorCodedEnabled) return {};
-  
-  const baseColor = generateProjectColor(projectName);
-  
-  if (isSubproject) {
-    // Convert hex to RGBA with 40% opacity for subprojects
-    const r = parseInt(baseColor.slice(1, 3), 16);
-    const g = parseInt(baseColor.slice(3, 5), 16);
-    const b = parseInt(baseColor.slice(5, 7), 16);
+  const getProjectBackgroundStyle = (projectName: string, isSubproject: boolean = false) => {
+    if (!colorCodedEnabled) return {};
+    
+    const baseColor = generateProjectColor(projectName);
+    
+    if (isSubproject) {
+      const r = parseInt(baseColor.slice(1, 3), 16);
+      const g = parseInt(baseColor.slice(3, 5), 16);
+      const b = parseInt(baseColor.slice(5, 7), 16);
+      return {
+        backgroundColor: `rgba(${r}, ${g}, ${b}, 0.4)`,
+        borderLeft: `3px solid ${baseColor}`
+      };
+    }
+    
     return {
-      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.4)`,
-      borderLeft: `3px solid ${baseColor}`
+      backgroundColor: baseColor
     };
-  }
-  
-  return {
-    backgroundColor: baseColor
   };
-};
+
   const getCurrentDayStyle = (date: Date) => {
     const isToday = isSameDay(date, new Date());
     if (!isToday || !progressBarEnabled) return {};
@@ -332,79 +332,51 @@ const getProjectBackgroundStyle = (projectName: string, isSubproject: boolean = 
 
   return (
     <div className="space-y-6 animate-fade-in font-sans" style={{ fontFamily: "'Noto Sans', sans-serif" }}>
+      {/* Week Days Card */}
       <Card className="bg-white border border-[#B0B0B0] shadow-md">
         <CardHeader className="py-4 px-6 bg-[#F0F0F0] border-b border-[#B0B0B0]">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-black">
-              <Calendar className="h-6 w-6 text-[#4D4D4D]" />
-              <span className="text-xl font-bold tracking-tight">Weekly Timesheet</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button 
-                onClick={openTimeBreakdown}
-                className="bg-[#4D4D4D] text-white hover:bg-[#7D7D7D]"
-              >
-                View Time Breakdown
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
-              <Button onClick={goToPreviousWeek} variant="outline" size="sm" className="border border-[#B0B0B0] text-black">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <Label className="text-[#4D4D4D] font-medium">From:</Label>
-                  <input
-                    type="date"
-                    value={format(dateRange.start, 'yyyy-MM-dd')}
-                    onChange={(e) => handleDateRangeChange('start', new Date(e.target.value))}
-                    className="border border-[#B0B0B0] rounded px-2 py-1"
-                  />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle className="text-xl font-bold text-black tracking-tight">Week Days</CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-4">
+                <Button onClick={goToPreviousWeek} variant="outline" size="sm" className="border border-[#B0B0B0] text-black">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[#4D4D4D] font-medium">From:</Label>
+                    <input
+                      type="date"
+                      value={format(dateRange.start, 'yyyy-MM-dd')}
+                      onChange={(e) => handleDateRangeChange('start', new Date(e.target.value))}
+                      className="border border-[#B0B0B0] rounded px-2 py-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[#4D4D4D] font-medium">To:</Label>
+                    <input
+                      type="date"
+                      value={format(dateRange.end, 'yyyy-MM-dd')}
+                      onChange={(e) => handleDateRangeChange('end', new Date(e.target.value))}
+                      className="border border-[#B0B0B0] rounded px-2 py-1"
+                    />
+                  </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Label className="text-[#4D4D4D] font-medium">To:</Label>
-                  <input
-                    type="date"
-                    value={format(dateRange.end, 'yyyy-MM-dd')}
-                    onChange={(e) => handleDateRangeChange('end', new Date(e.target.value))}
-                    className="border border-[#B0B0B0] rounded px-2 py-1"
-                  />
-                </div>
+                <Button onClick={goToNextWeek} variant="outline" size="sm" className="border border-[#B0B0B0] text-black">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
               
-              <Button onClick={goToNextWeek} variant="outline" size="sm" className="border border-[#B0B0B0] text-black">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Button onClick={goToCurrentWeek} className="bg-[#4D4D4D] text-white hover:bg-[#7D7D7D]">
-                This Week
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button onClick={goToCurrentWeek} className="bg-[#4D4D4D] text-white hover:bg-[#7D7D7D]">
+                  This Week
+                </Button>
+              </div>
             </div>
           </div>
-          
-          <div className="flex justify-between items-center bg-[#F8F8F8] p-4 rounded-lg border border-[#E0E0E0]">
-            <div className="text-lg font-bold text-[#4D4D4D]">
-              {format(dateRange.start, 'MMM d, yyyy')} - {format(dateRange.end, 'MMM d, yyyy')}
-            </div>
-            <div className="text-lg font-bold text-[#4D4D4D]">
-              Total: {formatHours(timeLogs.reduce((total, log) => total + log.duration, 0))} hours
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Day Boxes Section */}
-      <Card className="bg-white border border-[#B0B0B0] shadow-md">
-        <CardHeader className="py-4 px-6 bg-[#F0F0F0] border-b border-[#B0B0B0]">
-          <CardTitle className="text-xl font-bold text-black tracking-tight">Week Days</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
